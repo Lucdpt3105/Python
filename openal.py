@@ -64,11 +64,15 @@ class c_void(Structure):
 #al
 class lib_openal(object):
     def __init__(self):
+        # Tìm đường dẫn thư mục chứa file openal.py
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        dll_path = os.path.join(script_dir, 'OpenAL32.dll')
+        
         if 'add_dll_directory' in dir(os):
-            os.add_dll_directory(os.getcwd())
-            self._lib = ctypes.CDLL('OpenAL32.dll')
+            os.add_dll_directory(script_dir)
+            self._lib = ctypes.CDLL(dll_path)
         else:
-            self._lib = ctypes.CDLL(os.path.abspath('OpenAL32.dll'))
+            self._lib = ctypes.CDLL(dll_path)
 
         self._int_types = (c_int16, c_int32)
         if hasattr(ctypes, 'c_int64'):

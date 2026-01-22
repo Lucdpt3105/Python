@@ -6,7 +6,6 @@ sources at different positions playing their own voice (the sound sources can be
 
 import sys
 import os
-# Thêm đường dẫn để import openal
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from openal import *
 import time
@@ -24,12 +23,15 @@ class VirtualSpace3D:
         print("Đây là trung tâm của một căn phòng 20x20x10 mét\n")
         
         # Load file âm thanh
+        sound_path = os.path.join(os.path.dirname(__file__), '..', '3D_Audio', 'tone5.wav')
         try:
-            self.sound = LoadSound('../../Examples/3D_Audio/tone5.wav')
+            self.sound = LoadSound(sound_path)
             print("Đã load âm thanh thành công!")
-        except:
-            print("Lỗi: Không tìm thấy file âm thanh!")
+        except Exception as e:
+            print(f"Lỗi: Không tìm thấy file âm thanh! {e}")
+            print(f"Đường dẫn: {sound_path}")
             print("Vui lòng cung cấp file .wav hoặc điều chỉnh đường dẫn")
+            self.sound = None
             return
         
         # Tạo nhiều nguồn âm thanh (sound sources)

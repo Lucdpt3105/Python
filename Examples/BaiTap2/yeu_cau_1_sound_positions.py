@@ -23,12 +23,15 @@ class SoundAtPositions:
         
         # Load file âm thanh (đảm bảo có file này trong thư mục)
         # Bạn có thể thay đổi đường dẫn đến file .wav của bạn
+        sound_path = os.path.join(os.path.dirname(__file__), '..', '3D_Audio', 'tone5.wav')
         try:
-            self.sound = LoadSound('../../Examples/3D_Audio/tone5.wav')
+            self.sound = LoadSound(sound_path)
             print("Đã load âm thanh thành công!\n")
-        except:
-            print("Lỗi: Không tìm thấy file âm thanh!")
+        except Exception as e:
+            print(f"Lỗi: Không tìm thấy file âm thanh! {e}")
+            print(f"Đường dẫn: {sound_path}")
             print("Vui lòng cung cấp file .wav hoặc điều chỉnh đường dẫn\n")
+            self.sound = None
             return
         
         # Tạo player để phát âm thanh
