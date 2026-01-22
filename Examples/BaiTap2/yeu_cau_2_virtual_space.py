@@ -22,17 +22,35 @@ class VirtualSpace3D:
         print(f"Listener (bạn) đang đứng ở vị trí: {self.listener.position}")
         print("Đây là trung tâm của một căn phòng 20x20x10 mét\n")
         
-        # Load file âm thanh
-        sound_path = os.path.join(os.path.dirname(__file__), '..', '3D_Audio', 'tone5.wav')
-        try:
-            self.sound = LoadSound(sound_path)
-            print("Đã load âm thanh thành công!")
-        except Exception as e:
-            print(f"Lỗi: Không tìm thấy file âm thanh! {e}")
-            print(f"Đường dẫn: {sound_path}")
-            print("Vui lòng cung cấp file .wav hoặc điều chỉnh đường dẫn")
-            self.sound = None
-            return
+        # Load nhiều file âm thanh khác nhau
+        self.sounds = {}
+        sound_files = {
+            'bird1': 'bird1.wav',
+            'bird2': 'bird2.wav',
+            'wind': 'wind.wav',
+            'animal': 'animal.wav',
+            'ambient': 'tone5.wav'  # Dùng tone5 cho ambient
+        }
+        
+        print("Đang load các file âm thanh...")
+        sounds_dir = os.path.join(os.path.dirname(__file__), 'sounds')
+        tone5_path = os.path.join(os.path.dirname(__file__), '..', '3D_Audio', 'tone5.wav')
+        
+        for key, filename in sound_files.items():
+            try:
+                if key == 'ambient':
+                    # Ambient dùng tone5 từ thư mục 3D_Audio
+                    self.sounds[key] = LoadSound(tone5_path)
+                else:
+                    # Các âm thanh khác từ thư mục sounds
+                    sound_path = os.path.join(sounds_dir, filename)
+                    self.sounds[key] = LoadSound(sound_path)
+                print(f"  ✓ {key}: {filename}")
+            except Exception as e:
+                print(f"  ✗ Lỗi load {key}: {e}")
+                return
+        
+        print("Đã load tất cả âm thanh thành công!\n")
         
         # Tạo nhiều nguồn âm thanh (sound sources)
         self.sources = []
@@ -47,6 +65,7 @@ class VirtualSpace3D:
         source_configs = [
             {
                 'name': 'Bird 1 (Chim 1)',
+                'sound_key': 'bird1',
                 'start_pos': (-8, 5, 3),
                 'direction': (1, 0, 0),    # Di chuyển sang phải
                 'speed': 0.3,
@@ -55,6 +74,7 @@ class VirtualSpace3D:
             },
             {
                 'name': 'Bird 2 (Chim 2)',
+                'sound_key': 'bird2',
                 'start_pos': (8, -5, 4),
                 'direction': (-1, 0, 0),   # Di chuyển sang trái
                 'speed': 0.4,
@@ -63,6 +83,7 @@ class VirtualSpace3D:
             },
             {
                 'name': 'Wind (Gió)',
+                'sound_key': 'wind',
                 'start_pos': (0, 10, 0),
                 'direction': (0, -1, 0),   # Di chuyển xuống
                 'speed': 0.2,
@@ -71,6 +92,7 @@ class VirtualSpace3D:
             },
             {
                 'name': 'Animal (Động vật)',
+                'sound_key': 'animal',
                 'start_pos': (0, -10, 2),
                 'direction': (0, 1, 0),    # Di chuyển lên
                 'speed': 0.25,
@@ -79,6 +101,7 @@ class VirtualSpace3D:
             },
             {
                 'name': 'Circular Sound (Âm thanh xoay tròn)',
+                'sound_key': 'ambient',
                 'start_pos': (7, 0, 2),
                 'direction': (0, 1, 0),    # Sẽ được tính toán để xoay tròn
                 'speed': 0.5,
@@ -90,7 +113,9 @@ class VirtualSpace3D:
         
         for config in source_configs:
             player = Player()
-            player.add(self.sound)
+            # Load âm thanh riêng cho từng nguồn
+            sound = self.sounds[config['sound_key']]
+            player.add(sound)
             player.position = config['start_pos']
             player.rolloff = 0.3
             player.gain = config['gain']
@@ -193,7 +218,8 @@ class VirtualSpace3D:
         try:
             for source in self.sources:
                 source['player'].delete()
-            self.sound.delete()
+            for sound in self.sounds.values():
+                sound.delete()
             self.listener.delete()
             print("Đã giải phóng tài nguyên.\n")
         except:
