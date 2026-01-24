@@ -1,4 +1,4 @@
-from openal import *
+from Library.openal import *
 import pyogg
 import time
 

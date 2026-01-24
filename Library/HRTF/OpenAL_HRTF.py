@@ -1,4 +1,4 @@
-from openal import *
+from Library.openal import *
 import time
 
 #For more information on HRTF tables, visit:

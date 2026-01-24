@@ -8,7 +8,7 @@ import sys
 import os
 # Thêm đường dẫn để import openal
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-from openal import *
+from Library.openal import *
 import time
 
 class SoundAtPositions:
