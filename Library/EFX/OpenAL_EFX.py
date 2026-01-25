@@ -15,7 +15,7 @@ class Example(object):
     #load EFX listener
         self.listener = Listener()
     #initialize sound
-        self.sound = LoadSound('LQ_Snare Rev.wav')
+        self.sound = LoadSound(os.path.join(os.path.dirname(__file__), 'LQ_Snare Rev.wav'))
     #load EFX sound player
         self.player = Player()
 

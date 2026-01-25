@@ -9,7 +9,7 @@ class Example(object):
     #load listener
         self.listener = Listener()
     #initialize sound
-        self.sound = LoadSound('tone5.wav')
+        self.sound = LoadSound(os.path.join(os.path.dirname(__file__), 'tone5.wav'))
     #load sound player
         self.player = Player()
 
