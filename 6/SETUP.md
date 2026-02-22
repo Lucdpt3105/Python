@@ -11,7 +11,7 @@
 
 ### Bước 1: Cài đặt dependencies
 
-```bash
+```bash[requirements.txt](requirements.txt)
 cd 6
 pip install -r requirements.txt
 ```
@@ -27,7 +27,7 @@ pip install -r requirements.txt
 mkdir -p checkpoints
 
 # Download từ nguồn chính thức
-# Link: https://github.com/advimman/lama/releases
+# Link: https://github[lama_model.py](lama_model.py).com/advimman/lama/releases
 # Hoặc từ Google Drive/Hugging Face
 
 # Sau khi download, đặt file vào:

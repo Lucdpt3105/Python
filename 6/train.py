@@ -110,13 +110,14 @@ class InpaintingLoss(nn.Module):
         }
 
 
-def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
+def train_epoch(model, dataloader, optimizer, criterion, device, epoch, use_amp=False):
     """Train for one epoch"""
     model.train()
     total_loss = 0
     loss_dict = {'l1': 0, 'perceptual': 0, 'total': 0}
 
     pbar = tqdm(dataloader, desc=f'Epoch {epoch}')
+    scaler = torch.amp.GradScaler(device='cuda', enabled=(use_amp and device.type == 'cuda'))
     for batch_idx, (inputs, targets, masks) in enumerate(pbar):
         inputs = inputs.to(device)
         targets = targets.to(device)
@@ -124,14 +125,16 @@ def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
 
         # Forward
         optimizer.zero_grad()
-        outputs = model(inputs)
+        with torch.amp.autocast(device_type='cuda', enabled=(use_amp and device.type == 'cuda')):
+            outputs = model(inputs)
 
-        # Loss
-        loss, losses = criterion(outputs, targets, masks)
+            # Loss
+            loss, losses = criterion(outputs, targets, masks)
 
         # Backward
-        loss.backward()
-        optimizer.step()
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
 
         # Statistics
         total_loss += loss.item()
@@ -152,7 +155,7 @@ def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
     return avg_loss, avg_loss_dict
 
 
-def validate(model, dataloader, criterion, device):
+def validate(model, dataloader, criterion, device, use_amp=False):
     """Validate the model"""
     model.eval()
     total_loss = 0
@@ -164,8 +167,9 @@ def validate(model, dataloader, criterion, device):
             targets = targets.to(device)
             masks = masks.to(device)
 
-            outputs = model(inputs)
-            loss, losses = criterion(outputs, targets, masks)
+            with torch.amp.autocast(device_type='cuda', enabled=(use_amp and device.type == 'cuda')):
+                outputs = model(inputs)
+                loss, losses = criterion(outputs, targets, masks)
 
             total_loss += loss.item()
             for key in loss_dict:
@@ -207,10 +211,22 @@ def main(args):
     train_dataset = InpaintingDataset(args.train_dir, transform=transform, mask_generator=mask_gen)
     val_dataset = InpaintingDataset(args.val_dir, transform=transform, mask_generator=mask_gen)
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
-                             shuffle=True, num_workers=args.num_workers)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size,
-                           shuffle=False, num_workers=args.num_workers)
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=args.num_workers,
+        pin_memory=(device.type == 'cuda'),
+        persistent_workers=(args.num_workers > 0)
+    )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        pin_memory=(device.type == 'cuda'),
+        persistent_workers=(args.num_workers > 0)
+    )
 
     # Model
     print("Initializing model...")
@@ -239,11 +255,11 @@ def main(args):
 
         # Train
         train_loss, train_losses = train_epoch(
-            model, train_loader, optimizer, criterion, device, epoch
+            model, train_loader, optimizer, criterion, device, epoch, use_amp=args.amp
         )
 
         # Validate
-        val_loss, val_losses = validate(model, val_loader, criterion, device)
+        val_loss, val_losses = validate(model, val_loader, criterion, device, use_amp=args.amp)
 
         # Learning rate scheduling
         scheduler.step()
@@ -283,12 +299,14 @@ if __name__ == "__main__":
     # Training
     parser.add_argument('--epochs', type=int, default=100,
                        help='Number of epochs')
-    parser.add_argument('--batch_size', type=int, default=8,
+    parser.add_argument('--batch_size', type=int, default=2,
                        help='Batch size')
     parser.add_argument('--lr', type=float, default=0.0002,
                        help='Learning rate')
-    parser.add_argument('--num_workers', type=int, default=4,
+    parser.add_argument('--num_workers', type=int, default=0,
                        help='Number of data loading workers')
+    parser.add_argument('--amp', action='store_true',
+                       help='Enable mixed precision on CUDA to reduce memory usage')
 
     # Checkpointing
     parser.add_argument('--checkpoint_dir', type=str, default='6/checkpoints',

@@ -196,7 +196,7 @@ class LaMaInpainting:
 
     def load_pretrained(self, checkpoint_path):
         """Load pretrained weights"""
-        checkpoint = torch.load(checkpoint_path, map_location=self.device)
+        checkpoint = torch.load(checkpoint_path, map_location=self.device, weights_only=False)
         if 'state_dict' in checkpoint:
             self.model.load_state_dict(checkpoint['state_dict'])
         else:

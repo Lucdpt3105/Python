@@ -7,37 +7,14 @@ import gradio as gr
 import numpy as np
 import cv2
 from PIL import Image
-import torch
-from lama_model import LaMaInpainting
 from mask_generator import MaskGenerator
-import os
 
 
 class InpaintingApp:
-    """Main application class"""
+    """Main application class - CV2 Inpainting"""
 
     def __init__(self):
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        print(f"Using device: {self.device}")
-
-        # Initialize model
-        self.model = LaMaInpainting(device=self.device)
-
-        # Check if pretrained model exists
-        checkpoint_path = "6/checkpoints/lama_model.pth"
-        if os.path.exists(checkpoint_path):
-            try:
-                self.model.load_pretrained(checkpoint_path)
-                self.model_loaded = True
-                print("✓ Pretrained model loaded successfully!")
-            except Exception as e:
-                print(f"⚠ Could not load pretrained model: {e}")
-                self.model_loaded = False
-        else:
-            print("⚠ No pretrained model found. Using random initialization.")
-            print(f"   Expected path: {checkpoint_path}")
-            self.model_loaded = False
-
+        print("🎨 Using CV2 Inpainting (No deep learning model needed)")
         self.mask_generator = MaskGenerator()
 
     def process_image(self, input_dict, mask_type="Free Draw"):
@@ -63,9 +40,22 @@ class InpaintingApp:
         if isinstance(image, Image.Image):
             image = np.array(image)
 
-        # Resize to standard size for processing
+        # Convert RGBA to RGB if needed
+        if len(image.shape) == 3 and image.shape[2] == 4:
+            image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
+
+        # Resize to smaller size for processing (reduce memory)
         original_size = image.shape[:2]
-        image = cv2.resize(image, (512, 512))
+        max_size = 512
+        h, w = original_size
+
+        # Scale down if too large
+        if max(h, w) > max_size:
+            scale = max_size / max(h, w)
+            new_h, new_w = int(h * scale), int(w * scale)
+            image = cv2.resize(image, (new_w, new_h))
+
+        print(f"📏 Processing size: {image.shape[:2]}, Original: {original_size}")
 
         # Create or extract mask
         if len(mask_layers) > 0 and mask_layers[0] is not None:
@@ -74,17 +64,22 @@ class InpaintingApp:
             if isinstance(mask_image, Image.Image):
                 mask_image = np.array(mask_image)
 
+            # Resize mask to match image size first
+            if mask_image.shape[:2] != (512, 512):
+                mask_image = cv2.resize(mask_image, (512, 512))
+
             # Convert RGBA to grayscale mask
             if len(mask_image.shape) == 3 and mask_image.shape[2] == 4:
                 # Use alpha channel as mask
                 mask = mask_image[:, :, 3]
             elif len(mask_image.shape) == 3:
-                mask = cv2.cvtColor(mask_image, cv2.COLOR_RGB2GRAY)
+                # Check for any non-zero pixels in RGB channels
+                mask = np.max(mask_image[:, :, :3], axis=2)
             else:
                 mask = mask_image
 
             # Threshold to binary
-            mask = (mask > 128).astype(np.uint8)
+            mask = (mask > 10).astype(np.uint8)
         else:
             # Generate automatic mask based on type
             if mask_type == "Random Rectangle":
@@ -99,7 +94,7 @@ class InpaintingApp:
 
         # Ensure mask is same size as image
         if mask.shape != image.shape[:2]:
-            mask = cv2.resize(mask, (512, 512))
+            mask = cv2.resize(mask, (image.shape[1], image.shape[0]))
 
         # Create masked image for visualization
         masked_image = image.copy()
@@ -107,17 +102,17 @@ class InpaintingApp:
         mask_overlay[mask == 1] = [255, 0, 0]  # Red overlay for masked region
         masked_image = cv2.addWeighted(masked_image, 0.7, mask_overlay, 0.3, 0)
 
-        # Perform inpainting
+        # Perform CV2 inpainting
         try:
-            if self.model_loaded:
-                inpainted = self.model.inpaint(image, mask)
-            else:
-                # Fallback: simple cv2 inpainting if model not loaded
-                print("⚠ Using CV2 fallback inpainting (model not loaded)")
-                mask_8bit = (mask * 255).astype(np.uint8)
-                inpainted = cv2.inpaint(image, mask_8bit, 3, cv2.INPAINT_TELEA)
+            # Convert mask to 8-bit
+            mask_8bit = (mask * 255).astype(np.uint8)
+
+            # CV2 inpainting (TELEA algorithm - better for photos)
+            inpainted = cv2.inpaint(image, mask_8bit, inpaintRadius=5, flags=cv2.INPAINT_TELEA)
+
+            print("✅ CV2 inpainting completed")
         except Exception as e:
-            print(f"Error during inpainting: {e}")
+            print(f"❌ Error during inpainting: {e}")
             return masked_image, image
 
         # Resize back to original size if needed
@@ -154,8 +149,8 @@ def create_interface():
 
     with gr.Blocks(title="Smart Content Filler - AI Inpainting", theme=gr.themes.Soft()) as demo:
         gr.Markdown("""
-        # 🎨 Smart Content Filler - AI Inpainting
-        ### Xóa vật thể & Phục hồi khuôn mặt thông minh
+        # 🎨 Smart Content Filler - CV2 Inpainting
+        ### Xóa vật thể & Phục hồi ảnh thông minh
 
         **Hướng dẫn sử dụng:**
         1. Upload ảnh của bạn
@@ -192,12 +187,12 @@ def create_interface():
         gr.Markdown("""
         ---
         ### 📊 Technical Details
-        - **Model:** LaMa (Resolution-robust Large Mask Inpainting)
-        - **Architecture:** Fast Fourier Convolutions (FFC)
+        - **Method:** OpenCV Inpainting (TELEA Algorithm)
         - **Features:**
-            - ✓ High-resolution inpainting
-            - ✓ Large mask handling
-            - ✓ Context-aware filling
+            - ✓ Fast processing (no GPU needed)
+            - ✓ Good for small-medium masks
+            - ✓ Traditional image processing
+            - ✓ Lightweight & efficient
         """)
 
         with gr.Accordion("🎯 Examples & Demo", open=False):

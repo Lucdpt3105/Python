@@ -8,7 +8,7 @@ Xóa vật thể thông minh (Object Removal): Xóa một người hoặc vật 
 
 🛠️ Các giai đoạn thực hiện (The AI Roadmap)
 Giai đoạn 1: Data & Masking (Chuẩn bị nguyên liệu)
-AI không thể học nếu không có dữ liệu. Bro cần hiểu cách tạo ra "đề bài" cho mô hì[requirements.txt](requirements.txt)nh.
+AI không thể học nếu không có dữ liệu. Bro cần hiểu cách tạo ra "đề bài" cho mô hình.
 
 Dataset: Tìm hiểu về bộ dữ liệu CelebA-HQ (chuyên về mặt) hoặc Places2 (chuyên về phong cảnh).
 
