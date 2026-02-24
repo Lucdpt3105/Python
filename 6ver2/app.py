@@ -7,6 +7,19 @@ from PIL import Image
 class ObjectRemovalApp:
     """Object removal with OpenCV inpainting (no deep learning)."""
 
+    def image_size_text(self, input_data):
+        if input_data is None:
+            return "Image size: -"
+        image = input_data.get("background")
+        if image is None:
+            return "Image size: -"
+        if isinstance(image, Image.Image):
+            image = np.array(image)
+        if not isinstance(image, np.ndarray) or image.ndim < 2:
+            return "Image size: -"
+        h, w = image.shape[:2]
+        return f"Image size: {w} x {h}px"
+
     def process(self, input_data, algorithm, radius):
         if input_data is None:
             return None, None
@@ -71,6 +84,11 @@ def create_demo():
                     brush=gr.Brush(colors=["#ff0000"], default_size=24),
                     height=450,
                 )
+                image_size = gr.Textbox(
+                    label="Image Info",
+                    value="Image size: -",
+                    interactive=False,
+                )
                 algorithm = gr.Radio(
                     choices=["TELEA", "NS"],
                     value="TELEA",
@@ -91,6 +109,12 @@ def create_demo():
                 masked_preview = gr.Image(label="Mask Preview", height=220)
                 output = gr.Image(label="Restored Image", height=220)
 
+        editor.change(
+            fn=app.image_size_text,
+            inputs=[editor],
+            outputs=[image_size],
+        )
+
         run_btn.click(
             fn=app.process,
             inputs=[editor, algorithm, radius],
@@ -98,8 +122,8 @@ def create_demo():
         )
 
         clear_btn.click(
-            fn=lambda: (None, None, None),
-            outputs=[editor, masked_preview, output],
+            fn=lambda: (None, "Image size: -", None, None),
+            outputs=[editor, image_size, masked_preview, output],
         )
 
     return demo
