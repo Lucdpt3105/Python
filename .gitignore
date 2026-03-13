@@ -58,6 +58,8 @@ ipython_config.py
 
 # Virtual environments
 venv/
+.venv/
+**/.venv/
 env/
 ENV/
 env.bak/
