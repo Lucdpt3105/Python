@@ -90,3 +90,10 @@ Desktop.ini
 .env
 .env.local
 nul
+
+# Large/generated videos for assignment 7.4
+Baitap7-NguyenVanSau/7.4/cyberpunk.mp4
+Baitap7-NguyenVanSau/7.4/SampleVid_cyberpunk_output.mp4
+
+# Ignore embedded external repository
+Motion-Detector-Using-OpenCV/
