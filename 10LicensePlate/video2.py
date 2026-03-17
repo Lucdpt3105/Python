@@ -6,7 +6,6 @@ import cv2
 import numpy as np
 import pytesseract
 
-
 def zoom(frame, zoom_rate=1.0):
     w = int(frame.shape[1] * zoom_rate)
     h = int(frame.shape[0] * zoom_rate)
